@@ -8,7 +8,7 @@ const settings = {
 const sketch = () => {
   return ({ context, width, height }) => {
     const cx = width * 0.1;
-    const cy = height * 0.1;
+    const cy = height * 0.1 ;
     const w = width * 0.01;
     const h = width * 0.1;
 
