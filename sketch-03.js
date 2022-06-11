@@ -1,5 +1,5 @@
 const canvasSketch = require('canvas-sketch');
-const { random } = require('canvas-sketch-util');
+const { random, math } = require('canvas-sketch-util');
 
 const settings = {
   dimensions: [1080, 1080],
@@ -7,20 +7,21 @@ const settings = {
 };
 
 const sketch = () => {
-  const Dots = new Array(40)
-    .fill(Entity())
-    .map(RandomizePosition(settings.dimensions[0], settings.dimensions[1]))
-    .map(RandomizeVelocity)
-    .map(RandomizeRadius);
+  let Dots = new Array(40).fill().map(
+    Entity({
+      canvasWidth: settings.dimensions[0],
+      canvasHeight: settings.dimensions[1],
+    })
+  );
 
   return ({ context, width, height }) => {
-    // reset and clear canvas
-    context.fillStyle = 'white';
-    context.fillRect(0, 0, width, height);
+    clearCanvas(context, width, height);
 
-    Dots.map(KeepInBounds(width, height))
-      .map(MoveWithVelocity)
-      .map(Drawer(context));
+    Dots = Dots.map(MoveWithVelocity)
+      // .map(KeepInBounds(width, height))
+      .map(WarpToOtherSide(width, height))
+      .map(LineDrawer(context))
+      .map(DotDrawer(context));
   };
 };
 
@@ -31,15 +32,38 @@ function Vector(x = 0, y = 0) {
   });
 }
 
-function Entity(x = 0, y = 0, radius = 10) {
-  return Object.freeze({
-    position: Vector(x, y),
-    velocity: Vector(x, y),
-    radius,
-  });
+function Entity({
+  positionX = 0,
+  positionY = 0,
+  velocityX = 0,
+  velocityY = 0,
+  radius = 0,
+  canvasWidth = 0,
+  canvasHeight = 0,
+} = {}) {
+  return function () {
+    const posX = positionX || random.range(0, canvasWidth);
+    const posY = positionY || random.range(0, canvasHeight);
+
+    const velX = velocityX || random.range(-1, 1);
+    const velY = velocityY || random.range(-1, 1);
+
+    const rad = radius || random.range(4, 12);
+
+    return Object.freeze({
+      position: Vector(posX, posY),
+      velocity: Vector(velX, velY),
+      radius: rad,
+    });
+  };
 }
 
-function Drawer(context) {
+function clearCanvas(context, width, height) {
+  context.fillStyle = 'white';
+  context.fillRect(0, 0, width, height);
+}
+
+function DotDrawer(context) {
   return (entity) => {
     const {
       position: { x, y },
@@ -57,6 +81,25 @@ function Drawer(context) {
     context.strokeStyle = 'black';
     context.stroke();
     context.restore();
+
+    return entity;
+  };
+}
+
+function LineDrawer(context) {
+  return function (entity, index, entityArray) {
+    entityArray.forEach((child) => {
+      const distance = GetDistance(entity, child);
+
+      if (distance > 200) return;
+
+      context.lineWidth = math.mapRange(distance, 0, 200, 6, 1);
+
+      context.beginPath();
+      context.moveTo(entity.position.x, entity.position.y);
+      context.lineTo(child.position.x, child.position.y);
+      context.stroke();
+    });
 
     return entity;
   };
@@ -131,14 +174,41 @@ function KeepInBounds(width, height) {
   };
 }
 
+function WarpToOtherSide(width, height) {
+  return (entity) => {
+    let positionX = entity.position.x;
+    if (entity.position.x <= 0) positionX = width;
+    if (entity.position.x <= 0) positionX = width - 5;
+
+    let positionY = entity.position.y;
+    if (entity.position.y >= height) positionY = 0;
+    if (entity.position.y <= 0) positionY = height - 5;
+
+    return {
+      ...entity,
+      position: { x: positionX, y: positionY },
+    };
+  };
+}
+
 const MoveWithVelocity = (entity) => {
-  return Object.freeze({
+  const x = entity.position.x + entity.velocity.x;
+  const y = entity.position.y + entity.velocity.y;
+
+  return {
     ...entity,
     position: {
-      x: entity.position.x += entity.velocity.x,
-      y: entity.position.y += entity.velocity.y,
+      x,
+      y,
     },
-  });
+  };
+};
+
+const GetDistance = (entity1, entity2) => {
+  const distanceX = entity1.position.x - entity2.position.x;
+  const distanceY = entity1.position.y - entity2.position.y;
+
+  return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 };
 
 canvasSketch(sketch, settings);

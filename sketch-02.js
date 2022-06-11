@@ -3,10 +3,13 @@ const { random, math } = require('canvas-sketch-util');
 
 const settings = {
   dimensions: [1080, 1080],
+  animate: true
 };
 
 const sketch = () => {
   return ({ context, width, height }) => {
+    clearCanvas(context, width, height)
+    
     const cx = width * 0.1;
     const cy = height * 0.1 ;
     const w = width * 0.01;
@@ -57,5 +60,10 @@ const sketch = () => {
     });
   };
 };
+
+function clearCanvas(context, width, height) {
+  context.fillStyle = 'white';
+  context.fillRect(0, 0, width, height);
+}
 
 canvasSketch(sketch, settings);
