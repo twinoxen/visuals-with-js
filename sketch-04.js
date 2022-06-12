@@ -18,6 +18,9 @@ const PARAMS = {
   frame: 0,
   animate: true,
   lineCap: 'butt',
+  color: { r: 0, g: 0, b: 0 },
+  opacity: 1,
+  shape: 'line',
 };
 
 const sketch = () => {
@@ -77,9 +80,18 @@ function GridDrawer(context) {
     context.rotate(r);
     context.lineWidth = s;
     context.lineCap = PARAMS.lineCap;
+    context.strokeStyle = `rgba(${PARAMS.color.r},${PARAMS.color.g},${PARAMS.color.b},${PARAMS.opacity})`;
+
     context.beginPath();
-    context.moveTo(w * -0.5, 0);
-    context.lineTo(w * 0.5, 0);
+
+    if (PARAMS.shape === 'line') {
+      context.moveTo(w * -0.5, 0);
+      context.lineTo(w * 0.5, 0);
+    } else {
+      context.beginPath();
+      context.arc(0, 0, 10, 0, 2 * Math.PI);
+    }
+
     context.stroke();
     context.restore();
   };
@@ -104,10 +116,23 @@ function SetupPane() {
   f2.addInput(PARAMS, 'scaleMin', { min: 1, max: 999 });
   f2.addInput(PARAMS, 'scaleMax', { min: 1, max: 999 });
   f2.addInput(PARAMS, 'freq', { min: 0.001, max: 0.01 });
-  f2.addInput(PARAMS, 'animate')
-  f2.addInput(PARAMS, 'frame', { min: 1, max: 999, step: 1});
-  f2.addInput(PARAMS, 'amp', { min: 0.001, max: 5});
-  f2.addInput(PARAMS, 'lineCap', { options: { butt: 'butt', round: 'round', square: 'square' }});
+  f2.addInput(PARAMS, 'animate');
+  f2.addInput(PARAMS, 'frame', { min: 1, max: 999, step: 1 });
+  f2.addInput(PARAMS, 'amp', { min: 0.001, max: 5 });
+  f2.addInput(PARAMS, 'lineCap', {
+    options: { butt: 'butt', round: 'round', square: 'square' },
+  });
+  f2.addInput(PARAMS, 'color');
+  f2.addInput(PARAMS, 'shape', {
+    options: { line: 'line', circle: 'circle' },
+  });
+  f2.addInput(PARAMS, 'opacity', { min: 0.01, max: 1 });
+}
+
+function paddy(num, padlen, padchar) {
+  var pad_char = typeof padchar !== 'undefined' ? padchar : '0';
+  var pad = new Array(1 + padlen).join(pad_char);
+  return (pad + num).slice(-pad.length);
 }
 
 SetupPane();
