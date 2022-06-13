@@ -18,12 +18,16 @@ const PARAMS = {
   frame: 0,
   animate: true,
   lineCap: 'butt',
-  color: { r: 0, g: 0, b: 0 },
+  color: { r: 55, g: 55, b: 55 },
+  randomColors: false,
+  fadeColors: false,
   opacity: 1,
   shape: 'line',
 };
 
 const sketch = () => {
+  const FadeColors = ColorFader(PARAMS.color);
+
   return ({ context, width, height, frame }) => {
     context.fillStyle = 'white';
     context.fillRect(0, 0, width, height);
@@ -47,6 +51,10 @@ const sketch = () => {
       bottom: (height - gridHeight) * 0.5,
     };
 
+    if (PARAMS.fadeColors) {
+      PARAMS.color = FadeColors();
+    }
+
     FillArray(cols).map((item, colIndex) =>
       new FillArray(rows).forEach((item, rowIndex) => {
         const x = colIndex * cellWidth + margin.left + cellWidth * 0.5;
@@ -57,11 +65,14 @@ const sketch = () => {
 
         const f = PARAMS.animate ? frame : PARAMS.frame;
 
-        // const n = random.noise2D(x + frame * 10, y, 0.001);
         const n = random.noise3D(x, y, f * 10, PARAMS.freq, PARAMS.amp);
 
         const s = math.mapRange(n, -1, 1, PARAMS.scaleMin, PARAMS.scaleMax);
         const r = n * Math.PI * 0.2;
+
+        if (PARAMS.randomColors) {
+          PARAMS.color = RandomColors();
+        }
 
         DrawGrid(x, y, w, h, r, s);
       })
@@ -84,12 +95,22 @@ function GridDrawer(context) {
 
     context.beginPath();
 
-    if (PARAMS.shape === 'line') {
-      context.moveTo(w * -0.5, 0);
-      context.lineTo(w * 0.5, 0);
-    } else {
-      context.beginPath();
-      context.arc(0, 0, 10, 0, 2 * Math.PI);
+    switch (PARAMS.shape) {
+      case 'line':
+        context.moveTo(w * -0.5, 0);
+        context.lineTo(w * 0.5, 0);
+        break;
+
+      case 'circle':
+        context.beginPath();
+        context.arc(0, 0, 10, 0, 2 * Math.PI);
+        break;
+      case 'triangle':
+        context.moveTo(w * -0.5, 0);
+        context.lineTo(w * 0.5, 0);
+        context.lineTo(0, h * 0.5);
+        context.closePath();
+        break;
     }
 
     context.stroke();
@@ -122,9 +143,11 @@ function SetupPane() {
   f2.addInput(PARAMS, 'lineCap', {
     options: { butt: 'butt', round: 'round', square: 'square' },
   });
+  f2.addInput(PARAMS, 'fadeColors');
+  f2.addInput(PARAMS, 'randomColors');
   f2.addInput(PARAMS, 'color');
   f2.addInput(PARAMS, 'shape', {
-    options: { line: 'line', circle: 'circle' },
+    options: { line: 'line', circle: 'circle', triangle: 'triangle' },
   });
   f2.addInput(PARAMS, 'opacity', { min: 0.01, max: 1 });
 }
@@ -133,6 +156,34 @@ function paddy(num, padlen, padchar) {
   var pad_char = typeof padchar !== 'undefined' ? padchar : '0';
   var pad = new Array(1 + padlen).join(pad_char);
   return (pad + num).slice(-pad.length);
+}
+
+function RandomColors() {
+  return {
+    r: random.range(0, 255),
+    g: random.range(0, 255),
+    b: random.range(0, 255),
+  };
+}
+
+function ColorFader(colors) {
+  let rDirection = Math.random() < 0.5 ? 1 : -1;
+  let gDirection = Math.random() < 0.5 ? 1 : -1;
+  let bDirection = Math.random() < 0.5 ? 1 : -1;
+
+  return () => {
+    rDirection = colors.r < 0 || colors.r >= 200 ? rDirection * -1 : rDirection;
+    gDirection = colors.g < 0 || colors.g >= 200 ? gDirection * -1 : gDirection;
+    bDirection = colors.b < 0 || colors.b >= 200 ? bDirection * -1 : bDirection;
+
+    colors = {
+      r: colors.r + rDirection,
+      g: colors.g + gDirection,
+      b: colors.b + bDirection,
+    };
+
+    return colors;
+  };
 }
 
 SetupPane();
